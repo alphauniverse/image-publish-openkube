@@ -1,0 +1,33 @@
+name: mirror-hub
+
+# 监听 mirror-hub 目录变化并调用共享工作流构建推送
+# 新增其他镜像时，复制本文件改名即可，无需重复写构建逻辑
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "mirror-hub/**"
+      - ".github/workflows/mirror-hub.yml"
+      - ".github/workflows/docker-publish.yml"
+    tags:
+      - "mirror-hub/v*"
+  workflow_dispatch:
+
+jobs:
+  call-docker-publish:
+    # 调用可复用工作流时，必须在 caller 端显式授予被调用工作流所需的权限
+    # 否则嵌套 job 会被降级为只读，导致 packages: write 校验失败
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/docker-publish.yml
+    with:
+      # 目标镜像名：从仓库 Variables 读取 IMAGE_NAME_MIRROR_HUB，未配置则回退默认值
+      image_name: ${{ vars.IMAGE_NAME_MIRROR_HUB || 'openkube/mirror-hub' }}
+      context: mirror-hub/
+      dockerfile: mirror-hub/Dockerfile
+      base_image: dqzboy/mirror-hub:latest
+      tag_prefix: mirror-hub/
+    secrets: inherit  # 共享仓库级 DOCKERHUB_USERNAME、DOCKERHUB_TOKEN

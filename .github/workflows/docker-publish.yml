@@ -1,0 +1,90 @@
+name: Build and Push Docker Image (Reusable)
+
+# 可复用工作流：所有镜像目录通过 workflow_call 调用本工作流
+# 共享仓库级 Secrets: DOCKERHUB_USERNAME、DOCKERHUB_TOKEN
+# 调用方需通过 inputs 提供镜像名、构建上下文、Dockerfile 路径等参数
+on:
+  workflow_call:
+    inputs:
+      # 目标镜像全名，格式 <dockerhub-username>/<repo>
+      image_name:
+        description: "Target image name, e.g. longshu/registry"
+        required: true
+        type: string
+      # 构建上下文目录（相对仓库根），如 mirror-hub/
+      context:
+        description: "Build context directory, e.g. mirror-hub/"
+        required: true
+        type: string
+      # Dockerfile 路径（相对仓库根），如 mirror-hub/Dockerfile
+      dockerfile:
+        description: "Dockerfile path, e.g. mirror-hub/Dockerfile"
+        required: true
+        type: string
+      # 基础镜像，作为 build-arg BASE_IMAGE 传入；留空则使用 Dockerfile 内默认值
+      base_image:
+        description: "Base image passed as BASE_IMAGE build-arg (optional)"
+        required: false
+        type: string
+        default: ""
+      # 目标平台，默认 amd64 + arm64
+      platforms:
+        description: "Target platforms"
+        required: false
+        type: string
+        default: "linux/amd64,linux/arm64"
+      # 用于 semver tag 提取的 tag 前缀，如 mirror-hub/v1.0.0 -> 前缀 mirror-hub/
+      tag_prefix:
+        description: "Tag prefix for semver extraction, e.g. mirror-hub/"
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ inputs.image_name }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch
+            type=semver,pattern={{version}},prefix=${{ inputs.tag_prefix }}
+            type=semver,pattern={{major}}.{{minor}},prefix=${{ inputs.tag_prefix }}
+            type=sha,format=short
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.dockerfile }}
+          platforms: ${{ inputs.platforms }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BASE_IMAGE=${{ inputs.base_image }}
