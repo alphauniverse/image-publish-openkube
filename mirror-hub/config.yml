@@ -32,10 +32,10 @@ http:
     Access-Control-Allow-Credentials: [true]
     Access-Control-Expose-Headers: ['Docker-Content-Digest']
 
-auth:
-  htpasswd:
-    realm: basic-realm
-    path: /etc/secrets/htpasswd
+#auth:
+#  htpasswd:
+#    realm: basic-realm
+#    path: /etc/secrets/htpasswd
 
 proxy:
   remoteurl: https://registry-1.docker.io
