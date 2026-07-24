@@ -29,21 +29,18 @@
 
 | 名称 | 说明 |
 |------|------|
-| `DOCKERHUB_USERNAME` | Docker Hub 用户名 |
+| `DOCKERHUB_USERNAME` | Docker Hub 用户名（用于拼接镜像名 `<USERNAME>/<repo>`） |
 | `DOCKERHUB_TOKEN` | Docker Hub Access Token（在 Docker Hub → Account Settings → Security 创建，不要用密码） |
 
 ### Variables（非敏感，明文）
 
-每个镜像对应一个 Variable，命名规则 `IMAGE_NAME_<大写目录名>`：
+外部源码镜像可选配置上游版本 Variable：
 
 | 名称 | 说明 | 示例 |
 |------|------|------|
-| `IMAGE_NAME_MIRROR_HUB` | mirror-hub 目录的目标镜像全名 | `longshu/mirror-hub` |
-| `IMAGE_NAME_OCTOP` | octop 目录的目标镜像全名 | `longshu/octop` |
 | `OCTOP_REF` | octop 上游源码 ref（tag/branch/commit），未配置则用 `main` | `0.9.13` |
-| `IMAGE_NAME_<其他>` | 其他镜像的目标镜像全名 | `longshu/nginx` |
 
-> 调用工作流中通过 `vars.IMAGE_NAME_XXX || '默认回退值'` 读取，未配置则使用回退值（需手动修改）。
+> 镜像名由 `DOCKERHUB_USERNAME` secret 自动拼接为 `<USERNAME>/<repo>`，无需为每个镜像单独配置。改用户名只需更新该 secret 值。
 
 ## 新增镜像步骤
 
@@ -54,10 +51,9 @@
    - `name: my-nginx`
    - `paths` 监听改为 `my-nginx/**` 和 `.github/workflows/my-nginx.yml`
    - `tags` 改为 `my-nginx/v*`
-   - `image_name` 改为 `${{ vars.IMAGE_NAME_MY_NGINX || 'your-dockerhub-username/my-nginx' }}`
+   - `image_name` 改为 `${{ secrets.DOCKERHUB_USERNAME }}/my-nginx`
    - `context` / `dockerfile` / `base_image` / `tag_prefix` 按需调整
-3. 在 GitHub Variables 中添加 `IMAGE_NAME_MY_NGINX`
-4. 推送即可触发构建
+3. 推送即可触发构建
 
 ### 模式 B：外部源码（如 octop）
 
@@ -67,12 +63,12 @@
 2. 复制 `.github/workflows/octop.yml` 为 `.github/workflows/my-app.yml`，修改：
    - `name: my-app`
    - `tags` 改为 `my-app/v*`
-   - `image_name` 改为 `${{ vars.IMAGE_NAME_MY_APP || 'your-dockerhub-username/my-app' }}`
+   - `image_name` 改为 `${{ secrets.DOCKERHUB_USERNAME }}/my-app`
    - `source_repo` 改为外部仓库（如 `owner/repo`）
    - `source_ref` 改为 `${{ github.event.inputs.xxx || vars.MY_APP_REF || 'main' }}`
    - `context` / `dockerfile` 指向 checkout 目录（如 `_external` / `_external/path/to/Dockerfile`）
    - `platforms` / `tag_prefix` 按需调整
-3. 在 GitHub Variables 中添加 `IMAGE_NAME_MY_APP`（可选 `MY_APP_REF` 固定上游版本）
+3. （可选）在 GitHub Variables 中添加 `MY_APP_REF` 固定上游版本
 4. 推送或手动触发即可构建
 
 ## 工作流设计

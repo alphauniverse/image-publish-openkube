@@ -103,4 +103,4 @@ docker run -d -p 8088:8088 \
 - 构建 `linux/amd64` + `linux/arm64` 双架构：Octop 含 Playwright chromium，多架构构建耗时显著（首次约 20-30 分钟，GHA 缓存命中后约 8-12 分钟）
 - arm64 上 Playwright chromium 由官方支持，但构建较 amd64 更慢；如遇 arm64 兼容问题可临时在 `octop.yml` 中将 `platforms` 改回 `linux/amd64`
 - 上游 Dockerfile 支持国内加速 build-arg（`PIP_INDEX_URL` / `NPM_REGISTRY` / `APT_MIRROR`），当前工作流未传入（GitHub Actions runner 在海外，无需加速）；如需国内构建可扩展 `docker-publish.yml` 的 build-args
-- 目标镜像名通过 GitHub Variables 中的 `IMAGE_NAME_OCTOP` 配置（详见仓库根目录 README）
+- 目标镜像名由 `DOCKERHUB_USERNAME` secret 拼接为 `<USERNAME>/octop`（详见仓库根目录 README）

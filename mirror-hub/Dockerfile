@@ -5,7 +5,7 @@ ARG BASE_IMAGE=dqzboy/mirror-hub:latest
 FROM ${BASE_IMAGE}
 
 LABEL maintainer="longshu"
-LABEL description="Custom registry image with pre-installed auth password"
+LABEL description="Docker Hub proxy/cache registry"
 
 COPY ./config.yml /etc/distribution/config.yml
 

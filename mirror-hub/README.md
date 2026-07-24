@@ -64,4 +64,4 @@ docker run -d -p 5000:5000 -v registry-data:/var/lib/registry mirror-hub-test
 ## 注意事项
 
 - 当前为 **无认证** 模式，部署到公网需自行在 `config.yml` 中启用 `auth.htpasswd` 段并补充 htpasswd 文件
-- 目标镜像名通过 GitHub Variables 中的 `IMAGE_NAME_MIRROR_HUB` 配置（详见仓库根目录 README）
+- 目标镜像名由 `DOCKERHUB_USERNAME` secret 拼接为 `<USERNAME>/mirror-hub`（详见仓库根目录 README）

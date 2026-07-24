@@ -24,8 +24,8 @@ jobs:
       packages: write
     uses: ./.github/workflows/docker-publish.yml
     with:
-      # 目标镜像名：从仓库 Variables 读取 IMAGE_NAME_MIRROR_HUB，未配置则回退默认值
-      image_name: ${{ vars.IMAGE_NAME_MIRROR_HUB || 'openkube/mirror-hub' }}
+      # 目标镜像名：用 DOCKERHUB_USERNAME secret 拼接
+      image_name: ${{ secrets.DOCKERHUB_USERNAME }}/mirror-hub
       context: mirror-hub/
       dockerfile: mirror-hub/Dockerfile
       base_image: dqzboy/mirror-hub:latest
