@@ -67,11 +67,11 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Checkout external source (optional)
         if: ${{ inputs.source_repo != '' }}
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: ${{ inputs.source_repo }}
           ref: ${{ inputs.source_ref }}
