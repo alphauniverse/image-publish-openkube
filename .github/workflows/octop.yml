@@ -31,8 +31,8 @@ jobs:
       packages: write
     uses: ./.github/workflows/docker-publish.yml
     with:
-      # 目标镜像名：用 DOCKERHUB_USERNAME secret 拼接
-      image_name: ${{ secrets.DOCKERHUB_USERNAME }}/octop
+      # 目标镜像仓库名：与 DOCKERHUB_USERNAME secret 拼接为 <USERNAME>/octop
+      image_repo: octop
       # 构建上下文与 Dockerfile 指向外部源码 checkout 目录
       context: _external
       dockerfile: _external/docker/Dockerfile

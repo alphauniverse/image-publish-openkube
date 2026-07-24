@@ -24,8 +24,8 @@ jobs:
       packages: write
     uses: ./.github/workflows/docker-publish.yml
     with:
-      # 目标镜像名：用 DOCKERHUB_USERNAME secret 拼接
-      image_name: ${{ secrets.DOCKERHUB_USERNAME }}/mirror-hub
+      # 目标镜像仓库名：与 DOCKERHUB_USERNAME secret 拼接为 <USERNAME>/mirror-hub
+      image_repo: mirror-hub
       context: mirror-hub/
       dockerfile: mirror-hub/Dockerfile
       base_image: dqzboy/mirror-hub:latest

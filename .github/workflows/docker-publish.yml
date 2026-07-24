@@ -6,9 +6,9 @@ name: Build and Push Docker Image (Reusable)
 on:
   workflow_call:
     inputs:
-      # 目标镜像全名，格式 <dockerhub-username>/<repo>
-      image_name:
-        description: "Target image name, e.g. longshu/registry"
+      # 目标镜像仓库名（不含用户名前缀），如 mirror-hub；将拼接为 DOCKERHUB_USERNAME/image_repo
+      image_repo:
+        description: "Image repo name (e.g. mirror-hub). Combined as DOCKERHUB_USERNAME/image_repo"
         required: true
         type: string
       # 构建上下文目录（相对仓库根），如 mirror-hub/
@@ -87,7 +87,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ${{ inputs.image_name }}
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.image_repo }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=ref,event=branch

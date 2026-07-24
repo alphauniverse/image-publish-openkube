@@ -51,7 +51,7 @@
    - `name: my-nginx`
    - `paths` 监听改为 `my-nginx/**` 和 `.github/workflows/my-nginx.yml`
    - `tags` 改为 `my-nginx/v*`
-   - `image_name` 改为 `${{ secrets.DOCKERHUB_USERNAME }}/my-nginx`
+   - `image_repo` 改为 `my-nginx`（与 DOCKERHUB_USERNAME secret 拼接为 `<USERNAME>/my-nginx`）
    - `context` / `dockerfile` / `base_image` / `tag_prefix` 按需调整
 3. 推送即可触发构建
 
@@ -63,7 +63,7 @@
 2. 复制 `.github/workflows/octop.yml` 为 `.github/workflows/my-app.yml`，修改：
    - `name: my-app`
    - `tags` 改为 `my-app/v*`
-   - `image_name` 改为 `${{ secrets.DOCKERHUB_USERNAME }}/my-app`
+   - `image_repo` 改为 `my-app`（与 DOCKERHUB_USERNAME secret 拼接为 `<USERNAME>/my-app`）
    - `source_repo` 改为外部仓库（如 `owner/repo`）
    - `source_ref` 改为 `${{ github.event.inputs.xxx || vars.MY_APP_REF || 'main' }}`
    - `context` / `dockerfile` 指向 checkout 目录（如 `_external` / `_external/path/to/Dockerfile`）
