@@ -1,0 +1,47 @@
+name: octop
+
+# 监听工作流文件变化并调用共享工作流，从外部仓库 TencentCloud/Octop 拉取源码构建
+# 与 mirror-hub 不同：Octop 源码在外部仓库，无官方预构建镜像，需从源码多阶段构建
+# 新增其他"外部源码镜像"时，复制本文件改名并调整 source_repo / source_ref 即可
+on:
+  schedule:
+    # 每周三 17:00 CST（09:00 UTC）定时构建，跟踪上游最新
+    - cron: "0 9 * * 3"
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - ".github/workflows/octop.yml"
+      - ".github/workflows/docker-publish.yml"
+    tags:
+      - "octop/v*"
+  workflow_dispatch:
+    inputs:
+      octop_ref:
+        description: "Octop 源码 ref (tag/branch/commit)，留空则用 vars.OCTOP_REF 或 main"
+        required: false
+        default: ""
+
+jobs:
+  call-docker-publish:
+    # 调用可复用工作流时，必须在 caller 端显式授予被调用工作流所需的权限
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/docker-publish.yml
+    with:
+      # 目标镜像名：从仓库 Variables 读取 IMAGE_NAME_OCTOP，未配置则回退默认值
+      image_name: ${{ vars.IMAGE_NAME_OCTOP || 'openkube/octop' }}
+      # 构建上下文与 Dockerfile 指向外部源码 checkout 目录
+      context: _external
+      dockerfile: _external/docker/Dockerfile
+      # 构建多架构：amd64 + arm64
+      platforms: linux/amd64,linux/arm64
+      tag_prefix: octop/
+      # 外部源码：TencentCloud/Octop
+      # ref 优先级：手动触发的 input > GitHub Variables 的 OCTOP_REF > main
+      source_repo: TencentCloud/Octop
+      source_ref: ${{ github.event.inputs.octop_ref || vars.OCTOP_REF || 'main' }}
+      source_path: _external
+    secrets: inherit  # 共享仓库级 DOCKERHUB_USERNAME、DOCKERHUB_TOKEN

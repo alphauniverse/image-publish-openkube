@@ -1,22 +1,22 @@
 # Mirror Hub Registry 镜像
 
-基于 `dqzboy/registry:latest`，将本目录下的 `.password` 复制到容器内 `/etc/auth/.password`，并设置 `600` 权限，确保 registry 能以认证文件方式启动。
+基于 `dqzboy/mirror-hub:latest`，将本目录下的 `config.yml` 覆盖到容器内 `/etc/distribution/config.yml`，启动一个 **Docker Hub 代理 / 缓存 registry**。
 
 ## 目录结构
 
 ```
 mirror-hub/
 ├── Dockerfile          # 镜像构建文件
-├── .password           # htpasswd 格式的认证密码文件
-├── config.yml          # registry 配置文件（参考用，未打包进镜像）
+├── config.yml          # registry 配置文件（打包进镜像）
 └── README.md
 ```
 
 ## 镜像行为
 
-- 基础镜像：`dqzboy/registry:latest`（可通过 build-arg `BASE_IMAGE` 覆盖）
-- 将 `.password` 复制到 `/etc/auth/.password`，权限 `600`
+- 基础镜像：`dqzboy/mirror-hub:latest`（可通过 build-arg `BASE_IMAGE` 覆盖）
+- 将 `config.yml` 复制到 `/etc/distribution/config.yml`
 - 暴露端口 `5000`，挂载点 `/var/lib/registry`
+- 运行模式：Docker Hub 代理缓存（`proxy.remoteurl: https://registry-1.docker.io`），`auth` 段未启用
 
 ## 触发条件
 
@@ -38,14 +38,30 @@ mirror-hub/
 
 ```bash
 # 在仓库根目录执行
-docker build -t registry-test -f mirror-hub/Dockerfile mirror-hub/
+docker build -t mirror-hub-test -f mirror-hub/Dockerfile mirror-hub/
 
-# 运行验证密码文件已就位
-docker run --rm registry-test ls -l /etc/auth/.password
-# 应输出：-rw------- root root ... /etc/auth/.password
+# 验证 config 已就位
+docker run --rm mirror-hub-test cat /etc/distribution/config.yml
+# 应输出 config.yml 内容，包含 proxy.remoteurl: https://registry-1.docker.io
+
+# 启动代理 registry（需挂载存储卷）
+docker run -d -p 5000:5000 -v registry-data:/var/lib/registry mirror-hub-test
+# 拉取测试：docker pull localhost:5000/library/alpine
 ```
+
+## 配置说明（config.yml 关键项）
+
+| 配置项 | 值 | 说明 |
+|--------|-----|------|
+| `http.addr` | `:5000` | 监听端口 |
+| `http.relativeurls` | `true` | 返回相对 location，便于反代 |
+| `storage.filesystem.rootdirectory` | `/var/lib/registry` | 存储根目录 |
+| `storage.delete.enabled` | `true` | 允许删除镜像 |
+| `storage.maintenance.uploadpurging` | `age: 168h, interval: 24h` | 上传分块清理：保留 7 天，每 24h 执行 |
+| `proxy.remoteurl` | `https://registry-1.docker.io` | 上游 Docker Hub 地址 |
+| `auth` | （注释） | 未启用认证 |
 
 ## 注意事项
 
-- `mirror-hub/.password` 当前为空文件，推送前请填入 htpasswd 格式的实际内容
+- 当前为 **无认证** 模式，部署到公网需自行在 `config.yml` 中启用 `auth.htpasswd` 段并补充 htpasswd 文件
 - 目标镜像名通过 GitHub Variables 中的 `IMAGE_NAME_MIRROR_HUB` 配置（详见仓库根目录 README）

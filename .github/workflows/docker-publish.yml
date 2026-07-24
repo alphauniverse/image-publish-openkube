@@ -39,6 +39,24 @@ on:
         required: false
         type: string
         default: ""
+      # 外部源码仓库（可选），如 TencentCloud/Octop。留空则仅用本仓库代码构建
+      source_repo:
+        description: "External source repo to checkout (e.g. TencentCloud/Octop). Empty = build from this repo only."
+        required: false
+        type: string
+        default: ""
+      # 外部源码的 ref（tag/branch/commit）
+      source_ref:
+        description: "Ref of external source repo (tag/branch/commit)"
+        required: false
+        type: string
+        default: "main"
+      # 外部源码 checkout 到的路径（相对仓库根）
+      source_path:
+        description: "Path to checkout external source into"
+        required: false
+        type: string
+        default: "_external"
 
 jobs:
   build-and-push:
@@ -50,6 +68,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Checkout external source (optional)
+        if: ${{ inputs.source_repo != '' }}
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.source_repo }}
+          ref: ${{ inputs.source_ref }}
+          path: ${{ inputs.source_path }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
