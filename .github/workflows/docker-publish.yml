@@ -2,7 +2,7 @@ name: Build and Push Docker Image (Reusable)
 
 # 可复用工作流：所有镜像目录通过 workflow_call 调用本工作流
 # 共享仓库级 Secrets: DOCKERHUB_USERNAME、DOCKERHUB_TOKEN
-# 调用方需通过 inputs 提供镜像名、构建上下文、Dockerfile 路径等参数
+# 调用方需通过 inputs 提供镜像仓库名、构建上下文、Dockerfile 路径等参数
 on:
   workflow_call:
     inputs:
