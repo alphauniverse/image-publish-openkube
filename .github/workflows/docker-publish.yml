@@ -94,6 +94,8 @@ jobs:
             type=semver,pattern={{version}},prefix=${{ inputs.tag_prefix }}
             type=semver,pattern={{major}}.{{minor}},prefix=${{ inputs.tag_prefix }}
             type=sha,format=short
+            # 外部源码模式：将 source_ref 作为版本 tag（排除 main 等非版本 ref）
+            type=raw,value=${{ inputs.source_ref }},enable=${{ inputs.source_repo != '' && inputs.source_ref != 'main' }}
 
       - name: Login to Docker Hub
         uses: docker/login-action@v4
