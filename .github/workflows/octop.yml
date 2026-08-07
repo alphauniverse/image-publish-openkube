@@ -5,8 +5,8 @@ name: octop
 # 新增其他"外部源码镜像"时，复制本文件改名并调整 source_repo / source_ref 即可
 on:
   schedule:
-    # 每日 17:00 CST（09:00 UTC）检测上游 tag 变动，有新 tag 才构建
-    - cron: "0 9 * * *"
+    # 每 6 小时检测上游 tag 变动，30 分避开整点资源拥堵
+    - cron: "30 */6 * * *"
   push:
     branches:
       - main

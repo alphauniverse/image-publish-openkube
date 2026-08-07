@@ -28,7 +28,7 @@ octop/
 - 推送到 `main` / `master` 分支且修改了 `octop.yml` 或 `docker-publish.yml`
 - 推送 `octop/v*` 格式的 tag（如 `octop/v1.0.0`）
 - 手动触发（workflow_dispatch），可在触发时指定 `octop_ref` 选择上游版本
-- 定时触发（schedule）：每日 17:00（CST，即 09:00 UTC）自动检测上游最新 tag，若 Docker Hub 尚无该 tag 则构建推送；已存在则跳过
+- 定时触发（schedule）：每 6 小时（00:30、06:30、12:30、18:30 UTC）自动检测上游最新 tag，若 Docker Hub 尚无该 tag 则构建推送；已存在则跳过
 
 ## 上游版本控制
 
