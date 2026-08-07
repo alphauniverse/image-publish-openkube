@@ -5,8 +5,8 @@ name: octop
 # 新增其他"外部源码镜像"时，复制本文件改名并调整 source_repo / source_ref 即可
 on:
   schedule:
-    # 每周三 17:00 CST（09:00 UTC）定时构建，跟踪上游最新
-    - cron: "0 9 * * 3"
+    # 每日 17:00 CST（09:00 UTC）检测上游 tag 变动，有新 tag 才构建
+    - cron: "0 9 * * *"
   push:
     branches:
       - main
@@ -24,24 +24,81 @@ on:
         default: ""
 
 jobs:
+  # schedule 触发时：检测上游最新 tag，查 Docker Hub 是否已存在，决定是否构建
+  check-upstream:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.check.outputs.should_build }}
+      upstream_tag: ${{ steps.detect.outputs.upstream_tag }}
+    steps:
+      - name: Detect upstream latest tag
+        id: detect
+        run: |
+          # 获取上游最新 tag（按版本号降序排序）
+          LATEST_TAG=$(git ls-remote --tags --sort=-v:refname \
+            https://github.com/TencentCloud/Octop.git \
+            | head -1 \
+            | sed 's|.*refs/tags/||' \
+            | sed 's|\^{}||')
+
+          if [ -z "$LATEST_TAG" ]; then
+            echo "::warning::No tags found in upstream, skipping build"
+            echo "upstream_tag=main" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "Upstream latest tag: $LATEST_TAG"
+          echo "upstream_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+
+      - name: Check Docker Hub for existing tag
+        id: check
+        if: steps.detect.outputs.upstream_tag != 'main'
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.detect.outputs.upstream_tag }}"
+          echo "Checking if tag $TAG exists on Docker Hub..."
+
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -u "$DOCKERHUB_USERNAME:$DOCKERHUB_TOKEN" \
+            "https://hub.docker.com/v2/repositories/$DOCKERHUB_USERNAME/octop/tags/$TAG/")
+
+          echo "Docker Hub API response: $HTTP_CODE"
+
+          if [ "$HTTP_CODE" = "404" ]; then
+            echo "Tag $TAG not found on Docker Hub, will build"
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          elif [ "$HTTP_CODE" = "200" ]; then
+            echo "Tag $TAG already exists on Docker Hub, skipping build"
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          else
+            echo "::warning::Unexpected Docker Hub API response: $HTTP_CODE, proceeding with build"
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          fi
+
+  # 构建推送
   call-docker-publish:
-    # 调用可复用工作流时，必须在 caller 端显式授予被调用工作流所需的权限
+    needs: check-upstream
+    if: |
+      always() && (
+        (github.event_name == 'schedule' && needs.check-upstream.outputs.should_build == 'true') ||
+        github.event_name == 'push' ||
+        github.event_name == 'workflow_dispatch'
+      )
     permissions:
       contents: read
       packages: write
     uses: ./.github/workflows/docker-publish.yml
     with:
-      # 目标镜像仓库名：与 DOCKERHUB_USERNAME secret 拼接为 <USERNAME>/octop
       image_repo: octop
-      # 构建上下文与 Dockerfile 指向外部源码 checkout 目录
       context: _external
       dockerfile: _external/docker/Dockerfile
-      # 构建多架构：amd64 + arm64
       platforms: linux/amd64,linux/arm64
       tag_prefix: octop/
-      # 外部源码：TencentCloud/Octop
-      # ref 优先级：手动触发的 input > GitHub Variables 的 OCTOP_REF > main
       source_repo: TencentCloud/Octop
-      source_ref: ${{ github.event.inputs.octop_ref || vars.OCTOP_REF || 'main' }}
+      # schedule: 用检测到的上游 tag；push/dispatch: 保持原逻辑
+      source_ref: ${{ github.event_name == 'schedule' && needs.check-upstream.outputs.upstream_tag || github.event.inputs.octop_ref || vars.OCTOP_REF || 'main' }}
       source_path: _external
-    secrets: inherit  # 共享仓库级 DOCKERHUB_USERNAME、DOCKERHUB_TOKEN
+    secrets: inherit

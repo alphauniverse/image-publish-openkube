@@ -28,7 +28,7 @@ octop/
 - 推送到 `main` / `master` 分支且修改了 `octop.yml` 或 `docker-publish.yml`
 - 推送 `octop/v*` 格式的 tag（如 `octop/v1.0.0`）
 - 手动触发（workflow_dispatch），可在触发时指定 `octop_ref` 选择上游版本
-- 定时触发（schedule）：每周三 17:00（CST，即 09:00 UTC）自动构建，跟踪上游最新；ref 解析同上（`vars.OCTOP_REF` 或 `main`）
+- 定时触发（schedule）：每日 17:00（CST，即 09:00 UTC）自动检测上游最新 tag，若 Docker Hub 尚无该 tag 则构建推送；已存在则跳过
 
 ## 上游版本控制
 
@@ -44,11 +44,14 @@ Octop 源码 ref 按以下优先级解析：
 
 ## 镜像 Tag 规则
 
-| 触发场景 | 生成的 Tag |
-|----------|-----------|
-| push 到默认分支 | `latest` + `main` |
-| 推送 tag `octop/v1.2.3` | `1.2.3` + `1.2` |
-| 任意 commit | `<short-sha>` |
+| 触发场景 | source_ref | 生成的镜像 Tag |
+|----------|-----------|---------------|
+| push 到默认分支 | `main` | `latest` + `main` + `<short-sha>` |
+| 推送 tag `octop/v1.2.3` | `main` | `latest` + `main` + `1.2.3` + `1.2` + `<short-sha>` |
+| 手动触发，输入 `v0.9.19` | `v0.9.19` | `latest` + `main` + `v0.9.19` + `<short-sha>` |
+| 手动触发，留空 | `vars.OCTOP_REF` 或 `main` | `latest` + `main` + (版本号) + `<short-sha>` |
+| 定时检测到新 tag `v0.9.20` | `v0.9.20` | `latest` + `main` + `v0.9.20` + `<short-sha>` |
+| 定时检测，无新 tag | - | 跳过，不构建 |
 
 ## 本地验证
 
@@ -104,3 +107,5 @@ docker run -d -p 8088:8088 \
 - arm64 上 Playwright chromium 由官方支持，但构建较 amd64 更慢；如遇 arm64 兼容问题可临时在 `octop.yml` 中将 `platforms` 改回 `linux/amd64`
 - 上游 Dockerfile 支持国内加速 build-arg（`PIP_INDEX_URL` / `NPM_REGISTRY` / `APT_MIRROR`），当前工作流未传入（GitHub Actions runner 在海外，无需加速）；如需国内构建可扩展 `docker-publish.yml` 的 build-args
 - 目标镜像名由 `DOCKERHUB_USERNAME` secret 拼接为 `<USERNAME>/octop`（详见仓库根目录 README）
+- 定时检测依赖 Docker Hub API 查重：通过 `https://hub.docker.com/v2/repositories/<USERNAME>/octop/tags/<tag>/` 返回 HTTP 404 判定 tag 不存在。API 异常时保守触发构建，不会漏发
+- 上游无 tag 时（如纯 branch 仓库），定时检测跳过构建，退化为手动触发
