@@ -83,6 +83,15 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
+      - name: Prepare source ref tag
+        if: ${{ inputs.source_repo != '' && inputs.source_ref != 'main' }}
+        id: source-tag
+        run: |
+          REF="${{ inputs.source_ref }}"
+          # 去掉前导 v（如 v0.9.19 -> 0.9.19）
+          TAG="${REF#v}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v6
@@ -94,8 +103,8 @@ jobs:
             type=semver,pattern={{version}},prefix=${{ inputs.tag_prefix }}
             type=semver,pattern={{major}}.{{minor}},prefix=${{ inputs.tag_prefix }}
             type=sha,format=short
-            # 外部源码模式：将 source_ref 作为版本 tag（排除 main 等非版本 ref）
-            type=raw,value=${{ inputs.source_ref }},enable=${{ inputs.source_repo != '' && inputs.source_ref != 'main' }}
+            # 外部源码模式：将 source_ref 去掉 v 前缀后作为版本 tag（排除 main 等非版本 ref）
+            type=raw,value=${{ steps.source-tag.outputs.tag }},enable=${{ inputs.source_repo != '' && inputs.source_ref != 'main' }}
 
       - name: Login to Docker Hub
         uses: docker/login-action@v4
