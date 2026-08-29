@@ -65,7 +65,7 @@
 name: <image>
 on:
   push:
-    branches: [main, master]
+    branches: [main]
     paths: ['<image>/**', '.github/workflows/<image>.yml', '.github/workflows/docker-publish.yml']
     tags: ['<image>/v*']
   workflow_dispatch:
@@ -102,7 +102,7 @@ octop/
 name: <image>
 on:
   push:
-    branches: [main, master]
+    branches: [main]
     paths: ['.github/workflows/<image>.yml', '.github/workflows/docker-publish.yml']
     tags: ['<image>/v*']
   workflow_dispatch:

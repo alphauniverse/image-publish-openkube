@@ -10,7 +10,6 @@ on:
   push:
     branches:
       - main
-      - master
     paths:
       - ".github/workflows/octop.yml"
       - ".github/workflows/docker-publish.yml"

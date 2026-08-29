@@ -22,7 +22,7 @@ mirror-hub/
 
 由 `.github/workflows/mirror-hub.yml` 调用共享工作流 `docker-publish.yml` 触发：
 
-- 推送到 `main` / `master` 分支且修改了 `mirror-hub/**` 或对应工作流文件
+- 推送到 `main` 分支且修改了 `mirror-hub/**` 或对应工作流文件
 - 推送 `mirror-hub/v*` 格式的 tag（如 `mirror-hub/v1.0.0`）
 - 手动触发（workflow_dispatch）
 

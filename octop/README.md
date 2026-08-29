@@ -25,7 +25,7 @@ octop/
 
 由 `.github/workflows/octop.yml` 调用共享工作流 `docker-publish.yml` 触发：
 
-- 推送到 `main` / `master` 分支且修改了 `octop.yml` 或 `docker-publish.yml`
+- 推送到 `main` 分支且修改了 `octop.yml` 或 `docker-publish.yml`
 - 推送 `octop/v*` 格式的 tag（如 `octop/v1.0.0`）
 - 手动触发（workflow_dispatch），可在触发时指定 `octop_ref` 选择上游版本
 - 定时触发（schedule）：每小时（每小时的第 15 分 UTC）自动检测上游最新 tag，若 Docker Hub 尚无该 tag 则构建推送；已存在则跳过
