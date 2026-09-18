@@ -58,6 +58,8 @@ jobs:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           TAG="${{ steps.detect.outputs.upstream_tag }}"
+          # 推送时 tag 已去掉 v 前缀（见 docker-publish.yml 的 Prepare source ref tag），查询时需保持一致
+          TAG="${TAG#v}"
           echo "Checking if tag $TAG exists on Docker Hub..."
 
           HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
